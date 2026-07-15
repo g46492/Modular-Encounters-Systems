@@ -106,6 +106,10 @@ namespace ModularEncountersSystems.API {
 		public static bool ChaoticSpawningSettingsMod = false;
 		public static ulong _chaoticSpawningSettingsSteamId = 3023485481;
 
+		//Rich HUD Framework
+		public static bool RichHudFramework = false;
+		private static ulong _richHudFrameworkSteamId = 1965654081;
+
 		public static void DetectAddons() {
 
 			ConfigInstance = MyAPIGateway.Utilities.GamePaths.ModScopeName;
@@ -278,6 +282,15 @@ namespace ModularEncountersSystems.API {
 
 					SpawnLogger.Write("Chaotic Spawning Settings Mod Detected", SpawnerDebugEnum.Startup);
 					ChaoticSpawningSettingsMod = true;
+					continue;
+
+				}
+
+				//Rich HUD Framework
+				if (id == _richHudFrameworkSteamId) {
+
+					SpawnLogger.Write("Rich HUD Framework Mod Detected", SpawnerDebugEnum.Startup);
+					RichHudFramework = true;
 					continue;
 
 				}

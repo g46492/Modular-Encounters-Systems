@@ -1,5 +1,6 @@
 ﻿using ModularEncountersSystems.Admin;
 using ModularEncountersSystems.API;
+using ModularEncountersSystems.Avatar;
 using ModularEncountersSystems.Behavior;
 using ModularEncountersSystems.BlockLogic;
 using ModularEncountersSystems.Configuration;
@@ -77,6 +78,7 @@ namespace ModularEncountersSystems.Core {
 			EconomyHelper.Setup();
 			Settings.InitSettings("LoadData"); //Get Existing Settings From XML or Create New
 			AddonManager.DetectAddons(); //Check Add-on Mods
+			AvatarSystem.Setup(); //Avatar HUD Overlay (inert without Rich HUD Framework)
 			ProfileManager.Setup();
 			SpawnGroupManager.CreateSpawnLists();
 			BotSpawner.Setup();

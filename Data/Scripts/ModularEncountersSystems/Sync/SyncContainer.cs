@@ -18,7 +18,8 @@ namespace ModularEncountersSystems.Sync {
         SuitUpgradeNewPlayerStats,
         ReputationChangeClient,
         FactionAccountBalanceChange,
-        AddBlock
+        AddBlock,
+        AvatarDisplay
     }
 
     [ProtoContract]
@@ -63,6 +64,14 @@ namespace ModularEncountersSystems.Sync {
 
 
 
+
+        public SyncContainer(AvatarTransmission avatarTransmission) {
+
+            this.Mode = SyncMode.AvatarDisplay;
+            this.Data = MyAPIGateway.Utilities.SerializeToBinary<AvatarTransmission>(avatarTransmission);
+            this.Sender = "MES";
+
+        }
 
         public SyncContainer(Effects effect){
             

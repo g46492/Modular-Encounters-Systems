@@ -1,4 +1,5 @@
-﻿using ModularEncountersSystems.Core;
+﻿using ModularEncountersSystems.Avatar;
+using ModularEncountersSystems.Core;
 using ModularEncountersSystems.Entities;
 using ModularEncountersSystems.Logging;
 using ModularEncountersSystems.Progression;
@@ -233,6 +234,22 @@ namespace ModularEncountersSystems.Sync {
 
                     var message = MyAPIGateway.Utilities.SerializeFromBinary<AddBlockData>(container.Data);
                     message.Received();
+
+                }
+
+                if (container.Mode == SyncMode.AvatarDisplay) {
+
+                    //Display requests are only honored when they come from the server.
+                    if (!fromServer)
+                        return;
+
+                    var avatarData = MyAPIGateway.Utilities.SerializeFromBinary<AvatarTransmission>(container.Data);
+
+                    if (avatarData != null) {
+
+                        AvatarSystem.ShowTransmission(avatarData);
+
+                    }
 
                 }
 
