@@ -16,8 +16,8 @@ namespace ModularEncountersSystems.Avatar.UI {
 
 		private const string ConfigFileName = "MES_AvatarOverlay_Config.xml";
 
-		private const float DefaultXOffset = 0f;
-		private const float DefaultYOffset = 0f;
+		private const float DefaultXOffset = -850f;
+		private const float DefaultYOffset = 320f;
 		private const float DefaultScalePercent = 100f;
 		private const float DefaultGlitchStrengthPercent = 100f;
 

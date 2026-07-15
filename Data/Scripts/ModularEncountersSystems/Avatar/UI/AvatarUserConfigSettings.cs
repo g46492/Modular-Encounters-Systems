@@ -10,8 +10,8 @@ namespace ModularEncountersSystems.Avatar.UI {
 	[XmlRoot("AvatarUserConfigSettings")]
 	public class AvatarUserConfigSettings {
 
-		public float XOffset = 0f;
-		public float YOffset = 0f;
+		public float XOffset = -850f;
+		public float YOffset = 320f;
 		public float ScalePercent = 100f;
 		public float GlitchStrengthPercent = 100f;
 
