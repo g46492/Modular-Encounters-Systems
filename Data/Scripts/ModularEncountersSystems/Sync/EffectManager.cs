@@ -1,8 +1,10 @@
-﻿using ModularEncountersSystems.Entities;
+﻿using ModularEncountersSystems.Avatar;
+using ModularEncountersSystems.Entities;
 using ModularEncountersSystems.Logging;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
+using System;
 using System.Collections.Generic;
 using VRage.Game;
 using VRage.Game.Entity;
@@ -16,16 +18,18 @@ namespace ModularEncountersSystems.Sync {
 		public string SoundId;
 		public string Avatar;
 		public float VolumeMultiplier;
+		public AvatarTransmission AvatarData;
 
-		public ChatSoundData(string soundId, string avatar, float volume) {
+		public ChatSoundData(string soundId, string avatar, float volume, AvatarTransmission avatarData = null) {
 
 			SoundId = soundId;
 			Avatar = avatar;
 			VolumeMultiplier = volume;
+			AvatarData = avatarData;
 
 		}
-	
-	} 
+
+	}
 
 	public static class EffectManager {
 
@@ -36,15 +40,34 @@ namespace ModularEncountersSystems.Sync {
 		public static IMyEntity CurrentPlayerEntity;
 		public static MyEntity3DSoundEmitter SoundEmitter;
 		public static bool GotFirstEmitter;
-		public static string CurrentAvatar;
+
+		//The transmission started for the currently playing voice line, so the audio-end poll can
+		//end exactly that one (and not a newer feed that may have replaced it). See AvatarSystem.
+		private static AvatarTransmission _activeAudioAvatar;
+
+		//Safety timeout for audio-backed transmissions: audio length can't be read up front, so the
+		//display is armed with max(text estimate, floor) + grace and normally ends earlier, the
+		//moment the emitter reports the sound stopped. This only matters if that end signal is lost.
+		private const int AudioAvatarTimeoutFloorMs = 15000;
+		private const int AudioAvatarTimeoutGraceMs = 5000;
 
 		public static void ClientReceiveEffect(Effects effectData) {
 
 			if(effectData.Mode == EffectSyncMode.PlayerSound) {
-				
 
-				SoundsPendingList.Add(new ChatSoundData(effectData.SoundId, effectData.AvatarId, effectData.SoundVolume));
-				SoundsPending = true;
+				if (!string.IsNullOrWhiteSpace(effectData.SoundId)) {
+
+					SoundsPendingList.Add(new ChatSoundData(effectData.SoundId, effectData.AvatarId, effectData.SoundVolume, effectData.AvatarData));
+					SoundsPending = true;
+
+				} else if (effectData.AvatarData != null) {
+
+					//Soundless cue: its chat text already displayed on arrival, so the portrait shows
+					//immediately too (it does not wait behind queued voice lines) and times out on the
+					//text-length estimate the server put in DurationMS.
+					AvatarSystem.ShowTransmission(effectData.AvatarData);
+
+				}
 
 			}
 
@@ -121,7 +144,10 @@ namespace ModularEncountersSystems.Sync {
 
 		public static void ProcessPlayerSoundEffect() {
 
-			if(SoundsPending == false) {
+			//Keeps polling past the last queued sound while an audio-driven avatar is still up, so
+			//its end-of-audio signal isn't missed (SoundsPending drops the moment the queue empties,
+			//while the final voice line is usually still playing).
+			if (SoundsPending == false && _activeAudioAvatar == null) {
 
 				return;
 
@@ -135,43 +161,46 @@ namespace ModularEncountersSystems.Sync {
 
 			if (SoundEmitter.IsPlaying == true) {
 
-				ProcessAvatarDisplay();
 				return;
 
-			} else if(SoundsPendingList.Count > 0) {
+			}
 
-				var soundPair = new MySoundPair(SoundsPendingList[0].SoundId);
-				SoundEmitter.VolumeMultiplier = SoundsPendingList[0].VolumeMultiplier;
+			//The voice line ended (or nothing is playing anymore): end its avatar transmission.
+			//No-op inside AvatarSystem if that transmission already timed out or was replaced.
+			if (_activeAudioAvatar != null) {
+
+				AvatarSystem.EndTransmission(_activeAudioAvatar);
+				_activeAudioAvatar = null;
+
+			}
+
+			if (SoundsPendingList.Count > 0) {
+
+				var chatSound = SoundsPendingList[0];
+				var soundPair = new MySoundPair(chatSound.SoundId);
+				SoundEmitter.VolumeMultiplier = chatSound.VolumeMultiplier;
 				SoundEmitter.PlaySound(soundPair, false, false, true, true, false);
 				SoundsPlaying = true;
 				SoundsPendingList.RemoveAt(0);
 
+				//Start the avatar in lockstep with its voice line. DurationMS becomes the safety
+				//timeout - the normal end is the emitter poll above, whichever comes first.
+				if (chatSound.AvatarData != null) {
+
+					chatSound.AvatarData.DurationMS = Math.Max(chatSound.AvatarData.DurationMS, AudioAvatarTimeoutFloorMs) + AudioAvatarTimeoutGraceMs;
+					AvatarSystem.ShowTransmission(chatSound.AvatarData);
+					_activeAudioAvatar = chatSound.AvatarData;
+
+				}
+
 			}
-			
+
 			if(SoundsPendingList.Count == 0){
 
 				SoundsPlaying = false;
 				SoundsPending = false;
-				ProcessAvatarDisplay();
-				return;
-			
-			}
-
-		}
-
-		public static void ProcessAvatarDisplay() {
-
-			if (SoundEmitter == null)
-				return;
-
-			if (!SoundEmitter.IsPlaying) {
-
-				SoundsPlaying = false;
-				return;
 
 			}
-
-			//Do Something With This Later
 
 		}
 
@@ -183,11 +212,19 @@ namespace ModularEncountersSystems.Sync {
 				SoundEmitter = null;
 				SoundsPlaying = false;
 
+				//Emitter lost mid-line: the audio is gone, so the avatar backing it ends with it.
+				if (_activeAudioAvatar != null) {
+
+					AvatarSystem.EndTransmission(_activeAudioAvatar);
+					_activeAudioAvatar = null;
+
+				}
+
 				if (GotFirstEmitter) {
 
 					SoundsPendingList.Clear();
 					SoundsPending = false;
-				
+
 				}
 
 				return false;

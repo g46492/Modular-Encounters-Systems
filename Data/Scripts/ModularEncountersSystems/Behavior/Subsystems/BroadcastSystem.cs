@@ -1,3 +1,4 @@
+using ModularEncountersSystems.Avatar;
 using ModularEncountersSystems.Behavior.Subsystems.Trigger;
 using ModularEncountersSystems.Core;
 using ModularEncountersSystems.Helpers;
@@ -335,14 +336,30 @@ namespace ModularEncountersSystems.Behavior.Subsystems {
 
 				}
 
+				//Relation is computed against the actual receiving player (not the broadcast target
+				//id, which is 0 in SendToAllOnlinePlayers mode) so each client gets its own accent color.
+				var avatarData = AvatarSystem.BuildChatTransmission(avatar, authorName, modifiedMsg, player.IdentityId, factionTag);
+
 				if(string.IsNullOrWhiteSpace(sound) == false && sound != "None") {
 
 					var effect = new Effects();
 					effect.Mode = EffectSyncMode.PlayerSound;
 					effect.SoundId = sound;
 					effect.AvatarId = avatar;
+					effect.AvatarData = avatarData;
 					effect.SoundVolume = volume;
 					//MyVisualScriptLogicProvider.ShowNotificationToAll("Volume: " + volume, 4000);
+					var sync = new SyncContainer(effect);
+					SyncManager.SendSyncMesage(sync, player.SteamUserId);
+
+				} else if (avatarData != null) {
+
+					//Soundless cue with an avatar: no audio to ride along with, so the client shows
+					//the portrait immediately for the text-length estimate carried in DurationMS.
+					var effect = new Effects();
+					effect.Mode = EffectSyncMode.PlayerSound;
+					effect.AvatarId = avatar;
+					effect.AvatarData = avatarData;
 					var sync = new SyncContainer(effect);
 					SyncManager.SendSyncMesage(sync, player.SteamUserId);
 

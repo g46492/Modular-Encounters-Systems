@@ -51,6 +51,11 @@ namespace ModularEncountersSystems.Sync {
 		[ProtoMember(12)]
 		public float SoundVolume;
 
+		/// <summary>Full avatar payload for the HUD overlay (see AvatarSystem). Null when the cue
+		/// has no avatar. Supersedes the bare AvatarId, which is kept for wire compatibility.</summary>
+		[ProtoMember(13)]
+		public AvatarTransmission AvatarData;
+
 		public Effects() {
 
 			Mode = EffectSyncMode.None;

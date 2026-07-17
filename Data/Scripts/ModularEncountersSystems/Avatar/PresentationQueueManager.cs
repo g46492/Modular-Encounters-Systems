@@ -92,6 +92,22 @@ namespace ModularEncountersSystems.Avatar {
 		}
 
 		/// <summary>
+		/// Ends a specific transmission and advances to the next queued one - the "end command" of
+		/// the start/end lifecycle (e.g. fired when the voice line audio backing the transmission
+		/// stops playing). Takes the transmission instance rather than blindly ending whatever is
+		/// active: if the caller's transmission has already been replaced or expired, this is a
+		/// no-op, so a late audio-end signal can never cut short an unrelated newer feed.
+		/// </summary>
+		public void EndActive(AvatarTransmission packet) {
+
+			if (packet == null || !object.ReferenceEquals(_activePacket, packet))
+				return;
+
+			AdvanceQueue();
+
+		}
+
+		/// <summary>
 		/// Clears the active feed and every pending transmission.
 		/// </summary>
 		public void ClearAll() {

@@ -188,6 +188,29 @@ namespace ModularEncountersSystems.Avatar {
 		}
 
 		/// <summary>
+		/// Ends a specific transmission on the local client and advances the queue - the explicit
+		/// "end command" of the start/end lifecycle, fired when the audio backing the transmission
+		/// stops playing. No-op when that transmission is no longer the active one (already expired
+		/// via its safety timeout or replaced by a newer feed) or the display is unavailable.
+		/// </summary>
+		public static void EndTransmission(AvatarTransmission transmission) {
+
+			if (transmission == null || !CanDisplay)
+				return;
+
+			try {
+
+				PresentationQueueManager.Instance?.EndActive(transmission);
+
+			} catch (Exception exc) {
+
+				Fault("EndTransmission", exc);
+
+			}
+
+		}
+
+		/// <summary>
 		/// Clears the active feed and pending queue on the local client. Safe no-op when the display
 		/// is unavailable.
 		/// </summary>
@@ -255,6 +278,68 @@ namespace ModularEncountersSystems.Avatar {
 			var clear = new AvatarTransmission();
 			clear.ClearActiveFeeds = true;
 			SendTransmission(clear, steamId);
+
+		}
+
+		//Text-length display estimate: base read time plus per-character allowance, clamped so a
+		//one-word bark still registers and a wall of text can't park the avatar on screen forever.
+		private const int TextDurationBaseMs = 2500;
+		private const int TextDurationPerCharMs = 55;
+		private const int TextDurationMinMs = 4000;
+		private const int TextDurationMaxMs = 20000;
+
+		/// <summary>
+		/// Server-side: builds the avatar payload for a chat/dialogue cue from what the broadcast
+		/// pipeline already knows. Returns null when no portrait is defined (the cue simply has no
+		/// avatar). Relation is derived from the receiving player's reputation with the NPC faction
+		/// (same thresholds the chat system uses for author color); DurationMS is estimated from the
+		/// message text length - used directly as the display time for soundless cues, and as the
+		/// safety-timeout floor for audio-backed ones (see EffectManager).
+		/// </summary>
+		public static AvatarTransmission BuildChatTransmission(string portraitId, string speakerName, string message, long playerIdentityId, string factionTag) {
+
+			if (string.IsNullOrWhiteSpace(portraitId) || portraitId == "None")
+				return null;
+
+			try {
+
+				var relation = RelationStatus.Neutral;
+
+				if (playerIdentityId != 0 && !string.IsNullOrWhiteSpace(factionTag)) {
+
+					var faction = MyAPIGateway.Session.Factions.TryGetFactionByTag(factionTag);
+
+					if (faction != null) {
+
+						var reputation = MyAPIGateway.Session.Factions.GetReputationBetweenPlayerAndFaction(playerIdentityId, faction.FactionId);
+
+						if (reputation <= -501)
+							relation = RelationStatus.Hostile;
+						else if (reputation >= 501)
+							relation = RelationStatus.Friendly;
+
+					}
+
+				}
+
+				int textLength = message != null ? message.Length : 0;
+				int duration = Math.Min(TextDurationMaxMs, Math.Max(TextDurationMinMs, TextDurationBaseMs + textLength * TextDurationPerCharMs));
+
+				var transmission = new AvatarTransmission();
+				transmission.PortraitSubtypeId = portraitId;
+				transmission.SpeakerName = speakerName ?? "";
+				transmission.RelationStatus = relation;
+				transmission.DurationMS = duration;
+				transmission.Interruptible = true;
+
+				return transmission;
+
+			} catch (Exception exc) {
+
+				Fault("BuildChatTransmission", exc);
+				return null;
+
+			}
 
 		}
 
