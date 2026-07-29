@@ -129,6 +129,7 @@ namespace ModularEncountersSystems.Files
                         chat.BroadcastRandomly = false;
                         chat.ChatMessages = new List<string> { entry.Message };
                         chat.ChatAudio = new List<string> { entry.AudioId };
+                        chat.ChatDuration = new List<string> { entry.Duration };
 
                         if (SendToSpecificPlayers)
                             chat.SendToSpecificPlayers = true;
@@ -209,6 +210,7 @@ namespace ModularEncountersSystems.Files
         public string Message = "";
         public string AudioId = "";
         public float Weights = 1;
+        public int Duration = 100;
 
 
 
@@ -216,6 +218,3 @@ namespace ModularEncountersSystems.Files
     }
 
 }
-
-
-

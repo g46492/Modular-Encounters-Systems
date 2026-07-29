@@ -98,6 +98,22 @@ namespace ModularEncountersSystems.Behavior.Subsystems.Trigger {
 		[ProtoMember(29)]
 		public Vector3D GPSOffset;
 
+		[ProtoMember(30)]
+		public string AvatarImageId;
+
+		[ProtoMember(31)]
+		public bool AvatarInterruptible;
+
+		[ProtoMember(32)]
+		public string AvatarName;
+
+		[ProtoMember(33)]
+		public string AvatarTitle;
+
+		[ProtoMember(34)]
+		public string AvatarFactionIconId;
+
+
 		[ProtoIgnore]
 		public Random Rnd;
 
@@ -136,6 +152,12 @@ namespace ModularEncountersSystems.Behavior.Subsystems.Trigger {
 			ChatSentCount = 0;
 			LastChatTime = MyAPIGateway.Session.GameDateTime;
 			MessageIndex = 0;
+
+            AvatarImageId = "";
+            AvatarInterruptible = true;
+            AvatarName = "";
+            AvatarTitle = "";
+            AvatarFactionIconId = "";
 
 			Rnd = new Random();
 
@@ -382,10 +404,11 @@ namespace ModularEncountersSystems.Behavior.Subsystems.Trigger {
 
 					}
 
-
-
-
-					
+					if (tag.Contains("[AvatarImageId:") == true) TagParse.TagStringCheck(tag, ref AvatarImageId);
+					if (tag.Contains("[AvatarInterruptible:") == true) TagParse.TagBoolCheck(tag, ref AvatarInterruptible);
+					if (tag.Contains("[AvatarName:") == true) TagParse.TagStringCheck(tag, ref AvatarName);
+					if (tag.Contains("[AvatarTitle:") == true) TagParse.TagStringCheck(tag, ref AvatarTitle);
+					if (tag.Contains("[AvatarFactionIconId:") == true) TagParse.TagStringCheck(tag, ref AvatarFactionIconId);
 
 				}
 
